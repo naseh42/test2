@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تنظیمات</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/settings.css">
+</head>
+<body>
+    {% include 'header.html' %}
+    <main class="settings">
+        <section class="general-settings">
+            <h2>تنظیمات عمومی</h2>
+            <form action="/settings/general" method="post">
+                <label for="language">زبان:</label>
+                <select id="language" name="language">
+                    <option value="fa">فارسی</option>
+                    <option value="en">انگلیسی</option>
+                </select>
+
+                <label for="timezone">منطقه زمانی:</label>
+                <select id="timezone" name="timezone">
+                    <option value="Asia/Tehran">تهران</option>
+                    <option value="UTC">UTC</option>
+                </select>
+
+                <label for="theme">رنگ پنل:</label>
+                <select id="theme" name="theme">
+                    <option value="light">روشن</option>
+                    <option value="dark">تیره</option>
+                </select>
+
+                <button type="submit">ذخیره تنظیمات</button>
+            </form>
+        </section>
+        <section class="advanced-settings">
+            <h2>تنظیمات اختصاصی</h2>
+            <div class="configs">
+                <h3>کانفیگ‌ها</h3>
+                <button>ایجاد کانفیگ جدید</button>
+                <div class="config-list">
+                    <!-- نمایش کانفیگ‌ها -->
+                    <div class="config-item">
+                        <p>پروتکل: VMess</p>
+                        <p>پورت: 443</p>
+                        <p>وضعیت: فعال</p>
+                        <button>ویرایش</button>
+                        <button>حذف</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</body>
+</html>
