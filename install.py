@@ -4,13 +4,14 @@ import secrets
 import json
 from pathlib import Path
 
-def check_existing_directories():
-    print("Checking existing directories...")
+def check_and_create_directories():
+    print("Checking and creating missing directories...")
     required_directories = ["backend/static", "backend/templates", "backend/database", "configs"]
     for directory in required_directories:
         if not os.path.exists(directory):
-            raise FileNotFoundError(f"Required directory '{directory}' is missing. Please ensure all directories are correctly set up.")
-    print("All required directories are in place!")
+            print(f"Directory '{directory}' is missing. Creating it now...")
+            os.makedirs(directory, exist_ok=True)
+    print("All required directories are now in place!")
 
 def install_dependencies():
     print("Installing system-wide dependencies...")
@@ -113,7 +114,7 @@ def setup_certificates():
 
 if __name__ == "__main__":
     print("Starting installation...")
-    check_existing_directories()  # Checks necessary folders already exist
+    check_and_create_directories()  # Ensures necessary directories exist or creates them
     install_dependencies()  # Installs necessary system-wide packages
     setup_virtualenv()  # Prepares a Python virtual environment
     generate_requirements_file()  # Generates requirements.txt for the project
