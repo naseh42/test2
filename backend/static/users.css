@@ -1,0 +1,75 @@
+/* استایل بخش کاربران */
+.users {
+    padding: 20px;
+    background: rgba(10, 10, 40, 0.9);
+    color: #fff;
+    font-family: 'Roboto', sans-serif;
+}
+
+/* جدول کاربران */
+.user-list table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.user-list th, .user-list td {
+    border: 1px solid #f0a500;
+    padding: 10px;
+    text-align: center;
+}
+
+.user-list th {
+    background: #0f3460;
+    color: #00d4ff;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 10px;
+    background: #16213e;
+    border-radius: 5px;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress {
+    height: 100%;
+    background: #00d4ff;
+}
+
+/* فرم افزودن کاربر */
+.add-user form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding: 15px;
+    background: linear-gradient(90deg, #1a1a2e, #0f3460);
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.add-user form label {
+    color: #f8f9fa;
+}
+
+.add-user form input {
+    padding: 10px;
+    border: 1px solid #f0a500;
+    border-radius: 5px;
+    background: #16213e;
+    color: #fff;
+}
+
+.add-user form button {
+    padding: 10px;
+    background: #00d4ff;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.add-user form button:hover {
+    background: #f0a500;
+}
