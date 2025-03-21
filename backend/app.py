@@ -1,12 +1,13 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from backend.routers import users, domains, settings
 from backend.database import Base, engine
 from backend.utils.logger import setup_logger
 from backend.utils.time_utils import format_datetime, get_current_time
+from backend.utils.qr_utils import generate_qr_code
 
 # ایجاد شیء FastAPI
 app = FastAPI(
@@ -64,6 +65,12 @@ async def validation_exception_handler(request: Request, exc):
         status_code=422,
         content={"message": "Validation error occurred.", "details": exc.errors()},
     )
+
+# افزودن مسیر تولید QR Code
+@app.get("/generate-qr", tags=["QR Code"])
+def generate_qr(data: str = Query(..., description="Data to encode in QR Code")):
+    qr_buffer = generate_qr_code(data)
+    return StreamingResponse(qr_buffer, media_type="image/png")
 
 # افزودن روترها
 app.include_router(users.router, prefix="/users", tags=["Users"])
