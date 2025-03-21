@@ -5,7 +5,7 @@ import json
 import socket  # برای پیدا کردن آدرس IP
 from pathlib import Path
 
-BASE_DIR = os.path.abspath(os.getcwd())  # مسیر مطلق
+BASE_DIR = os.path.abspath(os.getcwd())  # استفاده از مسیر مطلق برای دقت بیشتر
 
 def check_and_create_directories():
     print("Checking and creating missing directories...")
@@ -123,15 +123,16 @@ def setup_certificates():
         print("Requesting certificate from Let's Encrypt...")
         subprocess.run(["certbot", "certonly", "--nginx", "-d", domain_or_ip], check=True)
         print("Certificates generated for domain:", domain_or_ip)
+    return domain_or_ip
 
-def generate_admin_link():
+def generate_admin_link(domain_or_ip):
     print("Generating admin link...")
-    domain_or_ip = input("Enter your domain or IP (default: 127.0.0.1): ") or "127.0.0.1"
     random_string = secrets.token_urlsafe(16)
     admin_link = f"https://{domain_or_ip}/admin-{random_string}"
     with open("admin_link.txt", "w") as f:
         f.write(admin_link)
-    print(f"Admin link generated: {admin_link}")
+    print(f"Admin link generated successfully and saved in 'admin_link.txt'")
+    return admin_link
 
 if __name__ == "__main__":
     print("Starting installation...")
@@ -141,6 +142,6 @@ if __name__ == "__main__":
     generate_requirements_file()  # Generates requirements.txt for the project
     ensure_config_files()  # Ensures configuration files like Xray/WireGuard exist
     verify_and_transfer_files()  # Verifies and transfers panel files
-    generate_admin_link()  # Produces admin link
-    setup_certificates()  # Sets up SSL certificates
-    print("Installation completed successfully! 🚀")
+    domain_or_ip = setup_certificates()  # Sets up SSL certificates
+    admin_link = generate_admin_link(domain_or_ip)  # Produces admin link
+    print(f"\nInstallation completed successfully! 🚀\nAdmin Panel Link: {admin_link}")
