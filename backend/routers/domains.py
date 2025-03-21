@@ -1,49 +1,33 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from backend.models.models import Domain
-from backend.database.database import get_db
+from fastapi import APIRouter, Request, Query
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import StreamingResponse
+from backend.utils.network_utils import validate_url, extract_domain
+from backend.utils.qr_utils import generate_qr_code
 
+# تنظیم مسیر تمپلت‌ها
+templates = Jinja2Templates(directory="backend/templates")
+
+# ایجاد Router
 router = APIRouter()
 
-# دریافت لیست دامنه‌ها
-@router.get("/")
-def get_domains(db: Session = Depends(get_db)):
-    domains = db.query(Domain).all()
-    return domains
+# مسیر بخش دامنه‌ها
+@router.get("/", tags=["Domains"])
+def domains_page(request: Request):
+    return templates.TemplateResponse("domains.html", {"request": request})
 
-# دریافت اطلاعات یک دامنه خاص
-@router.get("/{domain_id}")
-def get_domain(domain_id: int, db: Session = Depends(get_db)):
-    domain = db.query(Domain).filter(Domain.id == domain_id).first()
-    if not domain:
-        raise HTTPException(status_code=404, detail="Domain not found")
-    return domain
+# مسیر بررسی URL و استخراج دامنه
+@router.get("/validate-url", tags=["Network Tools"])
+def validate_url_api(url: str = Query(..., description="URL to validate")):
+    is_valid = validate_url(url)
+    domain = extract_domain(url) if is_valid else None
+    return {
+        "url": url,
+        "is_valid": is_valid,
+        "domain": domain
+    }
 
-# اضافه کردن دامنه جدید
-@router.post("/")
-def create_domain(domain: Domain, db: Session = Depends(get_db)):
-    db.add(domain)
-    db.commit()
-    db.refresh(domain)
-    return domain
-
-# به‌روزرسانی اطلاعات دامنه
-@router.put("/{domain_id}")
-def update_domain(domain_id: int, updated_domain: Domain, db: Session = Depends(get_db)):
-    domain = db.query(Domain).filter(Domain.id == domain_id).first()
-    if not domain:
-        raise HTTPException(status_code=404, detail="Domain not found")
-    for key, value in updated_domain.dict().items():
-        setattr(domain, key, value)
-    db.commit()
-    return domain
-
-# حذف دامنه
-@router.delete("/{domain_id}")
-def delete_domain(domain_id: int, db: Session = Depends(get_db)):
-    domain = db.query(Domain).filter(Domain.id == domain_id).first()
-    if not domain:
-        raise HTTPException(status_code=404, detail="Domain not found")
-    db.delete(domain)
-    db.commit()
-    return {"message": "Domain deleted successfully"}
+# مسیر تولید QR Code
+@router.get("/generate-qr", tags=["QR Code"])
+def generate_qr(data: str = Query(..., description="Data to encode in QR Code")):
+    qr_buffer = generate_qr_code(data)
+    return StreamingResponse(qr_buffer, media_type="image/png")
