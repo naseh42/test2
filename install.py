@@ -145,9 +145,9 @@ def start_services():
         subprocess.run(["systemctl", "start", "wg-quick@wg0"], check=True)
         subprocess.run(["systemctl", "enable", "wg-quick@wg0"], check=True)
         print("WireGuard service started successfully!")
-        # Starting Uvicorn
+        # Starting Uvicorn with app.py
         print("Starting Uvicorn server...")
-        subprocess.Popen(["venv/bin/uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"])
+        subprocess.Popen(["venv/bin/uvicorn", "backend.app:app", "--host", "0.0.0.0", "--port", "8000"])
         print("Uvicorn server started successfully!")
     except Exception as e:
         print(f"Error starting services: {e}")
