@@ -1,0 +1,53 @@
+/* استایل بخش دامنه‌ها */
+.domains {
+    padding: 20px;
+    background: rgba(20, 20, 60, 0.9);
+    color: #fff;
+    font-family: 'Roboto', sans-serif;
+}
+
+/* جدول دامنه‌ها */
+.domain-list table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.domain-list th, .domain-list td {
+    border: 1px solid #f0a500;
+    padding: 10px;
+    text-align: center;
+}
+
+.domain-list th {
+    background: #0f3460;
+    color: #00d4ff;
+}
+
+/* فرم افزودن دامنه */
+.add-domain, .subscription-domains {
+    margin-top: 20px;
+    background: linear-gradient(90deg, #1a1a2e, #16213e);
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.add-domain h2, .subscription-domains h2 {
+    color: #f0a500;
+}
+
+.add-domain form label, .subscription-domains form label {
+    display: block;
+    margin-bottom: 10px;
+    color: #f8f9fa;
+}
+
+.add-domain form input, .add-domain form select, .subscription-domains form button {
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #f0a500;
+    border-radius: 5px;
+    background: #16213e;
+    color: #fff;
+}
