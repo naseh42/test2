@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>کاربران</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/users.css">
+</head>
+<body>
+    {% include 'header.html' %}
+    <main class="users">
+        <section class="user-list">
+            <h2>لیست کاربران</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>نام کاربر</th>
+                        <th>روزهای باقی‌مانده</th>
+                        <th>حجم مصرفی</th>
+                        <th>وضعیت</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- کاربران نمونه -->
+                    <tr>
+                        <td>کاربر ۱</td>
+                        <td>۳۰ روز</td>
+                        <td>
+                            <div class="progress-bar">
+                                <div class="progress" style="width: 50%;"></div>
+                            </div>
+                        </td>
+                        <td>فعال</td>
+                        <td>
+                            <button>ویرایش</button>
+                            <button>حذف</button>
+                            <button>ایجاد لینک</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+        <section class="add-user">
+            <h2>افزودن کاربر جدید</h2>
+            <form action="/users/add" method="post">
+                <label for="username">نام کاربر:</label>
+                <input type="text" id="username" name="username" required>
+                
+                <label for="subscription_days">مدت زمان اشتراک (روز):</label>
+                <input type="number" id="subscription_days" name="subscription_days" required>
+                
+                <label for="data_limit">حجم مصرفی (GB):</label>
+                <input type="number" id="data_limit" name="data_limit" required>
+                
+                <label for="connections_limit">تعداد اتصالات همزمان:</label>
+                <input type="number" id="connections_limit" name="connections_limit" required>
+                
+                <button type="submit">افزودن</button>
+            </form>
+        </section>
+    </main>
+</body>
+</html>
