@@ -5,12 +5,13 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from backend.routers import users, domains, settings
-from backend.database import Base, engine
+from backend.database.database import Base, engine
 from backend.utils.logger import setup_logger
 from backend.utils.time_utils import format_datetime, get_current_time
 from backend.utils.qr_utils import generate_qr_code
 from backend.utils.file_utils import ensure_directory_exists, delete_file
 from backend.utils.network_utils import validate_url, extract_domain
+import secrets
 
 # ایجاد شیء FastAPI
 app = FastAPI(
@@ -101,7 +102,54 @@ def root():
 # مسیر داشبورد (تمپلت صفحه اصلی)
 @app.get("/dashboard", tags=["Dashboard"])
 def dashboard(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request, "users_count": 50, "domains_count": 10})
+    return templates.TemplateResponse("dashboard.html", {
+        "request": request,
+        "total_users": 100,
+        "online_users": 20,
+        "offline_users": 70,
+        "inactive_users": 10,
+        "cpu_usage": 45,
+        "ram_usage": 65,
+        "disk_usage": 55,
+        "bandwidth_speed": 120
+    })
+
+# مسیر بخش کاربران
+@app.get("/users", tags=["Users"])
+def users_page(request: Request):
+    return templates.TemplateResponse("users.html", {"request": request})
+
+# مسیر بخش تنظیمات
+@app.get("/settings", tags=["Settings"])
+def settings_page(request: Request):
+    return templates.TemplateResponse("settings.html", {"request": request})
+
+# مسیر بخش دامنه‌ها
+@app.get("/domains", tags=["Domains"])
+def domains_page(request: Request):
+    return templates.TemplateResponse("domains.html", {"request": request})
+
+# مسیر دسترسی ادمین با لینک متغیر
+@app.get("/admin-{random_string}", tags=["Admin"])
+def admin_access(random_string: str):
+    try:
+        with open("admin_link.txt", "r") as file:
+            saved_link = file.read().strip()
+        if f"/admin-{random_string}" not in saved_link:
+            raise HTTPException(status_code=403, detail="Invalid admin link.")
+        return {"message": "Welcome to the admin panel!"}
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Admin link not found. Please reinstall the panel.")
+
+# مسیر بازیابی لینک ذخیره‌شده
+@app.get("/retrieve-admin-link", tags=["Admin"])
+def retrieve_admin_link():
+    try:
+        with open("admin_link.txt", "r") as file:
+            admin_link = file.read().strip()
+        return {"admin_link": admin_link}
+    except FileNotFoundError:
+        return {"message": "Admin link not found. Please reinstall the panel."}
 
 # افزودن روترها
 app.include_router(users.router, prefix="/users", tags=["Users"])
