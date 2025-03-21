@@ -2,9 +2,10 @@ import os
 import subprocess
 import secrets
 import json
+import socket  # برای پیدا کردن آدرس IP
 from pathlib import Path
 
-BASE_DIR = os.path.abspath(os.getcwd())  # استفاده از مسیر مطلق برای دقت بیشتر
+BASE_DIR = os.path.abspath(os.getcwd())  # مسیر مطلق
 
 def check_and_create_directories():
     print("Checking and creating missing directories...")
@@ -20,7 +21,7 @@ def install_dependencies():
     subprocess.run(["apt-get", "update"], check=True)
     subprocess.run(["apt-get", "install", "-y", "python3", "python3-pip", "python3-venv", 
                     "nginx", "mariadb-server", "certbot", "unzip", "wget", 
-                    "wireguard", "ufw"], check=True)
+                    "wireguard", "ufw", "openssl"], check=True)
     print("All system dependencies installed successfully!")
 
 def setup_virtualenv():
@@ -98,6 +99,31 @@ def verify_and_transfer_files():
         print(f"Directory '{dest}' checked or created successfully!")
     print("All panel files are in the correct locations!")
 
+def setup_certificates():
+    print("Setting up SSL certificates...")
+    # درخواست دامنه
+    domain_or_ip = input("Enter your domain (or press Enter to use the server IP): ").strip()
+    if not domain_or_ip:
+        # دریافت آدرس IP سرور
+        domain_or_ip = socket.gethostbyname(socket.gethostname())
+        print(f"No domain provided. Using server IP: {domain_or_ip}")
+        print("Generating self-signed certificate...")
+        # تولید گواهی سلف سیگند
+        cert_path = f"{BASE_DIR}/configs/selfsigned.crt"
+        key_path = f"{BASE_DIR}/configs/selfsigned.key"
+        subprocess.run([
+            "openssl", "req", "-x509", "-nodes", "-days", "365",
+            "-newkey", "rsa:2048", "-keyout", key_path, "-out", cert_path,
+            "-subj", f"/CN={domain_or_ip}"
+        ], check=True)
+        print(f"Self-signed certificate generated successfully!")
+        print(f"Certificate: {cert_path}")
+        print(f"Key: {key_path}")
+    else:
+        print("Requesting certificate from Let's Encrypt...")
+        subprocess.run(["certbot", "certonly", "--nginx", "-d", domain_or_ip], check=True)
+        print("Certificates generated for domain:", domain_or_ip)
+
 def generate_admin_link():
     print("Generating admin link...")
     domain_or_ip = input("Enter your domain or IP (default: 127.0.0.1): ") or "127.0.0.1"
@@ -106,16 +132,6 @@ def generate_admin_link():
     with open("admin_link.txt", "w") as f:
         f.write(admin_link)
     print(f"Admin link generated: {admin_link}")
-
-def setup_certificates():
-    print("Setting up SSL certificates...")
-    domain_or_ip = input("Enter your domain (or press Enter to skip): ")
-    if domain_or_ip:
-        subprocess.run(["certbot", "certonly", "--nginx", "-d", domain_or_ip], check=True)
-        print("Certificates generated for domain:", domain_or_ip)
-    else:
-        subprocess.run(["certbot", "certonly", "--standalone", "--register-unsafely-without-email", "-d", "127.0.0.1"], check=True)
-        print("Certificates generated for IP address.")
 
 if __name__ == "__main__":
     print("Starting installation...")
