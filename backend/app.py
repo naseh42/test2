@@ -3,13 +3,14 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.templating import Jinja2Templates
 from backend.routers import users, domains, settings
 from backend.database import Base, engine
 from backend.utils.logger import setup_logger
 from backend.utils.time_utils import format_datetime, get_current_time
 from backend.utils.qr_utils import generate_qr_code
-from backend.utils.file_utils import ensure_directory_exists, delete_file  # اضافه شده
-from backend.utils.network_utils import validate_url, extract_domain  # اضافه شده
+from backend.utils.file_utils import ensure_directory_exists, delete_file
+from backend.utils.network_utils import validate_url, extract_domain
 
 # ایجاد شیء FastAPI
 app = FastAPI(
@@ -17,6 +18,9 @@ app = FastAPI(
     description="Comprehensive API for managing users, domains, settings, and server operations.",
     version="1.0.0"
 )
+
+# تنظیم مسیر تمپلت‌ها
+templates = Jinja2Templates(directory="backend/templates")
 
 # ایجاد جداول پایگاه داده (در صورت نیاز)
 Base.metadata.create_all(bind=engine)
@@ -69,7 +73,7 @@ async def validation_exception_handler(request: Request, exc):
         content={"message": "Validation error occurred.", "details": exc.errors()},
     )
 
-# افزودن مسیر تولید QR Code
+# مسیر تولید QR Code
 @app.get("/generate-qr", tags=["QR Code"])
 def generate_qr(data: str = Query(..., description="Data to encode in QR Code")):
     qr_buffer = generate_qr_code(data)
@@ -86,11 +90,6 @@ def validate_url_api(url: str = Query(..., description="URL to validate")):
         "domain": domain
     }
 
-# افزودن روترها
-app.include_router(users.router, prefix="/users", tags=["Users"])
-app.include_router(domains.router, prefix="/domains", tags=["Domains"])
-app.include_router(settings.router, prefix="/settings", tags=["Settings"])
-
 # مسیر اصلی
 @app.get("/", tags=["Root"])
 def root():
@@ -98,3 +97,13 @@ def root():
         "message": "Welcome to the Management Panel API. Use /docs for detailed documentation.",
         "status": "Running"
     }
+
+# مسیر داشبورد (تمپلت صفحه اصلی)
+@app.get("/dashboard", tags=["Dashboard"])
+def dashboard(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request, "users_count": 50, "domains_count": 10})
+
+# افزودن روترها
+app.include_router(users.router, prefix="/users", tags=["Users"])
+app.include_router(domains.router, prefix="/domains", tags=["Domains"])
+app.include_router(settings.router, prefix="/settings", tags=["Settings"])
