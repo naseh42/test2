@@ -1,49 +1,30 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from backend.models import User  # اصلاح ایمپورت
+from backend.models import User  # مدل SQLAlchemy
 from backend.database.database import get_db
+from backend.schemas import UserResponse, UserCreate  # اسکیمای Pydantic
 
 router = APIRouter()
 
 # دریافت لیست کاربران
-@router.get("/")
+@router.get("/", response_model=list[UserResponse])
 def get_users(db: Session = Depends(get_db)):
     users = db.query(User).all()
-    return users
+    return [user.to_dict() for user in users]
 
 # دریافت جزئیات یک کاربر
-@router.get("/{user_id}")
+@router.get("/{user_id}", response_model=UserResponse)
 def get_user(user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return user
+    return user.to_dict()
 
 # ایجاد یک کاربر جدید
-@router.post("/")
-def create_user(user: User, db: Session = Depends(get_db)):
-    db.add(user)
+@router.post("/", response_model=UserResponse)
+def create_user(user: UserCreate, db: Session = Depends(get_db)):
+    new_user = User(**user.dict())  # تبدیل اسکیمای Pydantic به مدل SQLAlchemy
+    db.add(new_user)
     db.commit()
-    db.refresh(user)
-    return user
-
-# به‌روزرسانی اطلاعات کاربر
-@router.put("/{user_id}")
-def update_user(user_id: int, updated_user: User, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    for key, value in updated_user.dict().items():
-        setattr(user, key, value)
-    db.commit()
-    return user
-
-# حذف کاربر
-@router.delete("/{user_id}")
-def delete_user(user_id: int, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    db.delete(user)
-    db.commit()
-    return {"message": "User deleted successfully"}
+    db.refresh(new_user)
+    return new_user.to_dict()
