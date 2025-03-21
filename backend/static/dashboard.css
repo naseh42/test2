@@ -1,0 +1,55 @@
+/* استایل بخش داشبورد */
+.dashboard {
+    padding: 20px;
+    background: rgba(0, 0, 50, 0.8);
+    color: #fff;
+    font-family: 'Roboto', sans-serif;
+}
+
+/* استایل بخش آمار کاربران */
+.stats {
+    margin-bottom: 30px;
+    background: linear-gradient(90deg, #0f3460, #16213e);
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.stats h2 {
+    margin-bottom: 15px;
+    text-align: center;
+    color: #00d4ff;
+}
+
+.stat {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    border-bottom: 1px solid #f0a500;
+    color: #f8f9fa;
+}
+
+.stat:last-child {
+    border-bottom: none;
+}
+
+/* استایل مشخصات سرور */
+.server {
+    background: linear-gradient(90deg, #1a1a2e, #0f3460);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.server h2 {
+    margin-bottom: 15px;
+    text-align: center;
+    color: #f0a500;
+}
+
+.server div {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    color: #00d4ff;
+}
