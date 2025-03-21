@@ -134,6 +134,25 @@ def generate_admin_link(domain_or_ip):
     print(f"Admin link generated successfully and saved in 'admin_link.txt'")
     return admin_link
 
+def start_services():
+    print("Starting required services...")
+    try:
+        # Starting Xray
+        subprocess.run(["systemctl", "start", "xray"], check=True)
+        subprocess.run(["systemctl", "enable", "xray"], check=True)
+        print("Xray service started successfully!")
+        # Starting WireGuard
+        subprocess.run(["systemctl", "start", "wg-quick@wg0"], check=True)
+        subprocess.run(["systemctl", "enable", "wg-quick@wg0"], check=True)
+        print("WireGuard service started successfully!")
+        # Starting Uvicorn
+        print("Starting Uvicorn server...")
+        subprocess.Popen(["venv/bin/uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"])
+        print("Uvicorn server started successfully!")
+    except Exception as e:
+        print(f"Error starting services: {e}")
+    print("All services started!")
+
 if __name__ == "__main__":
     print("Starting installation...")
     check_and_create_directories()  # Ensures necessary directories exist or creates them
@@ -144,4 +163,5 @@ if __name__ == "__main__":
     verify_and_transfer_files()  # Verifies and transfers panel files
     domain_or_ip = setup_certificates()  # Sets up SSL certificates
     admin_link = generate_admin_link(domain_or_ip)  # Produces admin link
+    start_services()  # Starts required services
     print(f"\nInstallation completed successfully! 🚀\nAdmin Panel Link: {admin_link}")
