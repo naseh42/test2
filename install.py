@@ -4,6 +4,8 @@ import secrets
 import json
 from pathlib import Path
 
+BASE_DIR = os.path.abspath(os.getcwd())  # استفاده از مسیر مطلق برای دقت بیشتر
+
 def check_and_create_directories():
     print("Checking and creating missing directories...")
     required_directories = ["backend/static", "backend/templates", "backend/database", "configs"]
@@ -81,16 +83,19 @@ AllowedIPs = 0.0.0.0/0
 def verify_and_transfer_files():
     print("Verifying and transferring panel files...")
     panel_files = {
-        "backend": "backend/",
-        "templates": "backend/templates/",
-        "static": "backend/static/"
+        f"{BASE_DIR}/backend/templates": f"{BASE_DIR}/backend/templates/",
+        f"{BASE_DIR}/backend/static": f"{BASE_DIR}/backend/static/",
+        f"{BASE_DIR}/backend": f"{BASE_DIR}/backend/"
     }
     for src, dest in panel_files.items():
+        print(f"Checking directory: {src}")
         if not os.path.exists(src):
+            print(f"Source directory '{src}' is missing.")
             raise FileNotFoundError(f"Required source directory '{src}' is missing.")
         if not os.path.exists(dest):
+            print(f"Destination directory '{dest}' is missing. Creating it now...")
             os.makedirs(dest, exist_ok=True)
-        print(f"Checked directory: {dest}")
+        print(f"Directory '{dest}' checked or created successfully!")
     print("All panel files are in the correct locations!")
 
 def generate_admin_link():
