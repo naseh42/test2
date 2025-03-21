@@ -8,6 +8,8 @@ from backend.database import Base, engine
 from backend.utils.logger import setup_logger
 from backend.utils.time_utils import format_datetime, get_current_time
 from backend.utils.qr_utils import generate_qr_code
+from backend.utils.file_utils import ensure_directory_exists, delete_file  # اضافه شده
+from backend.utils.network_utils import validate_url, extract_domain  # اضافه شده
 
 # ایجاد شیء FastAPI
 app = FastAPI(
@@ -43,6 +45,7 @@ logger = setup_logger()
 async def startup_event():
     current_time = get_current_time()
     logger.info(f"🚀 Application started at {format_datetime(current_time)}")
+    ensure_directory_exists("backend/static")  # اطمینان از وجود مسیر استاتیک
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -71,6 +74,17 @@ async def validation_exception_handler(request: Request, exc):
 def generate_qr(data: str = Query(..., description="Data to encode in QR Code")):
     qr_buffer = generate_qr_code(data)
     return StreamingResponse(qr_buffer, media_type="image/png")
+
+# مسیر بررسی URL و استخراج دامنه
+@app.get("/validate-url", tags=["Network Tools"])
+def validate_url_api(url: str = Query(..., description="URL to validate")):
+    is_valid = validate_url(url)
+    domain = extract_domain(url) if is_valid else None
+    return {
+        "url": url,
+        "is_valid": is_valid,
+        "domain": domain
+    }
 
 # افزودن روترها
 app.include_router(users.router, prefix="/users", tags=["Users"])
