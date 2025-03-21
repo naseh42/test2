@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>داشبورد</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/dashboard.css">
+</head>
+<body>
+    {% include 'header.html' %}
+    <main class="dashboard">
+        <section class="stats">
+            <h2>وضعیت کاربران</h2>
+            <div class="stat">
+                <p>کل کاربران:</p>
+                <span>{{ total_users }}</span>
+            </div>
+            <div class="stat">
+                <p>کاربران آنلاین:</p>
+                <span>{{ online_users }}</span>
+            </div>
+            <div class="stat">
+                <p>کاربران آفلاین:</p>
+                <span>{{ offline_users }}</span>
+            </div>
+            <div class="stat">
+                <p>کاربران غیر فعال:</p>
+                <span>{{ inactive_users }}</span>
+            </div>
+        </section>
+        <section class="server">
+            <h2>مشخصات سرور</h2>
+            <div>
+                <p>CPU:</p>
+                <span>{{ cpu_usage }}%</span>
+            </div>
+            <div>
+                <p>RAM:</p>
+                <span>{{ ram_usage }}%</span>
+            </div>
+            <div>
+                <p>Disk Usage:</p>
+                <span>{{ disk_usage }}%</span>
+            </div>
+            <div>
+                <p>سرعت پهنای باند:</p>
+                <span>{{ bandwidth_speed }} Mbps</span>
+            </div>
+        </section>
+    </main>
+</body>
+</html>
