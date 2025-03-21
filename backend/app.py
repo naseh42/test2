@@ -5,6 +5,8 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from backend.routers import users, domains, settings
 from backend.database import Base, engine
+from backend.utils.logger import setup_logger
+from backend.utils.time_utils import format_datetime, get_current_time
 
 # ایجاد شیء FastAPI
 app = FastAPI(
@@ -32,18 +34,24 @@ app.add_middleware(
     allowed_hosts=["your-production-domain.com", "*.your-domain.com"],  # محدودیت دامنه‌های مجاز
 )
 
+# تنظیم لاگر
+logger = setup_logger()
+
 # افزودن رویدادهای startup و shutdown
 @app.on_event("startup")
 async def startup_event():
-    print("🚀 Application is starting up...")
+    current_time = get_current_time()
+    logger.info(f"🚀 Application started at {format_datetime(current_time)}")
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    print("🛑 Application is shutting down...")
+    current_time = get_current_time()
+    logger.info(f"🛑 Application shutting down at {format_datetime(current_time)}")
 
 # مدیریت خطاهای عمومی (مثلاً 404 یا 422)
 @app.exception_handler(404)
 async def not_found_exception_handler(request: Request, exc):
+    logger.warning(f"404 Error: {request.url} not found.")
     return JSONResponse(
         status_code=404,
         content={"message": "The requested resource was not found."},
@@ -51,6 +59,7 @@ async def not_found_exception_handler(request: Request, exc):
 
 @app.exception_handler(422)
 async def validation_exception_handler(request: Request, exc):
+    logger.error(f"422 Validation Error at {request.url}: {exc.errors()}")
     return JSONResponse(
         status_code=422,
         content={"message": "Validation error occurred.", "details": exc.errors()},
