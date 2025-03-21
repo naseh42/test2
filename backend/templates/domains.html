@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مدیریت دامنه‌ها</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/domains.css">
+</head>
+<body>
+    {% include 'header.html' %}
+    <main class="domains">
+        <section class="domain-list">
+            <h2>لیست دامنه‌ها</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>دامنه</th>
+                        <th>نوع</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- دامنه نمونه -->
+                    <tr>
+                        <td>example.com</td>
+                        <td>CDN</td>
+                        <td>
+                            <button>ویرایش</button>
+                            <button>حذف</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+        <section class="add-domain">
+            <h2>افزودن دامنه جدید</h2>
+            <form action="/domains/add" method="post">
+                <label for="domain-name">نام دامنه:</label>
+                <input type="text" id="domain-name" name="domain_name" required>
+
+                <label for="domain-type">نوع دامنه:</label>
+                <select id="domain-type" name="domain_type">
+                    <option value="reality">ریلیتی</option>
+                    <option value="cdn">CDN</option>
+                    <option value="direct">مستقیم</option>
+                    <option value="subscription">سابسکریپشن</option>
+                </select>
+
+                <button type="submit">افزودن</button>
+            </form>
+        </section>
+        <section class="subscription-domains">
+            <h2>دامنه‌های سابسکریپشن</h2>
+            <form action="/domains/subscription" method="post">
+                <label>انتخاب دامنه‌ها:</label>
+                <div class="checkbox-group">
+                    <div>
+                        <input type="checkbox" id="domain1" name="selected_domains" value="example1.com">
+                        <label for="domain1">example1.com</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="domain2" name="selected_domains" value="example2.com">
+                        <label for="domain2">example2.com</label>
+                    </div>
+                </div>
+                <button type="submit">ذخیره تنظیمات</button>
+            </form>
+        </section>
+    </main>
+</body>
+</html>
