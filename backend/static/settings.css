@@ -1,0 +1,60 @@
+/* استایل بخش تنظیمات */
+.settings {
+    padding: 20px;
+    background: rgba(0, 0, 60, 0.9);
+    color: #fff;
+    font-family: 'Roboto', sans-serif;
+}
+
+/* تنظیمات عمومی */
+.general-settings {
+    margin-bottom: 30px;
+    background: linear-gradient(90deg, #1a1a2e, #16213e);
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.general-settings h2 {
+    margin-bottom: 15px;
+    color: #00d4ff;
+}
+
+.general-settings form label {
+    display: block;
+    margin-bottom: 10px;
+    color: #f8f9fa;
+}
+
+.general-settings form select, .general-settings form button {
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #f0a500;
+    border-radius: 5px;
+    background: #16213e;
+    color: #fff;
+}
+
+/* تنظیمات اختصاصی */
+.advanced-settings {
+    background: linear-gradient(90deg, #0f3460, #1a1a2e);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.advanced-settings h2, .advanced-settings h3 {
+    color: #f0a500;
+}
+
+.config-list {
+    margin-top: 20px;
+}
+
+.config-item {
+    background: #16213e;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
