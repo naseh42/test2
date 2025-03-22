@@ -32,28 +32,6 @@ def setup_virtualenv():
                     "sqlalchemy", "bcrypt", "cryptography", "requests", "qrcode", "pytz"], check=True)
     print("Virtual environment and Python dependencies are set up!")
 
-def generate_admin_link(domain_or_ip):
-    print("Generating admin links...")
-    random_string = secrets.token_urlsafe(16)
-    server_ip = subprocess.getoutput("curl -s http://checkip.amazonaws.com").strip()
-    admin_link_ip = f"http://{server_ip}/admin-{random_string}"
-    admin_link_domain = None
-    if domain_or_ip and domain_or_ip != server_ip:
-        admin_link_domain = f"https://{domain_or_ip}/admin-{random_string}"
-    
-    with open("admin_link.txt", "w") as f:
-        if admin_link_domain:
-            f.write(f"Domain Link: {admin_link_domain}\n")
-        f.write(f"IP Link: {admin_link_ip}\n")
-    
-    print("\nAdmin Panel Links:")
-    print(f"Admin Panel URL (IP): {admin_link_ip}")
-    if admin_link_domain:
-        print(f"Admin Panel URL (Domain): {admin_link_domain}")
-    print(f"Setup log saved in: {os.path.join(BASE_DIR, 'setup.log')}\n")
-    
-    return admin_link_domain, admin_link_ip
-
 def setup_trusted_host_middleware():
     print("Updating TrustedHostMiddleware in app.py...")
     server_ip = subprocess.getoutput("curl -s http://checkip.amazonaws.com").strip()
@@ -110,6 +88,36 @@ def setup_certificates():
     print(f"Self-signed certificate generated: {cert_path}, {key_path}")
     return domain_or_ip
 
+def generate_admin_link(domain_or_ip):
+    print("Generating admin links...")
+    random_string = secrets.token_urlsafe(16)
+    server_ip = subprocess.getoutput("curl -s http://checkip.amazonaws.com").strip()
+    admin_link_ip = f"http://{server_ip}/admin-{random_string}"
+    admin_link_domain = None
+    if domain_or_ip and domain_or_ip != server_ip:
+        admin_link_domain = f"https://{domain_or_ip}/admin-{random_string}"
+    
+    with open("admin_link.txt", "w") as f:
+        if admin_link_domain:
+            f.write(f"Domain Link: {admin_link_domain}\n")
+        f.write(f"IP Link: {admin_link_ip}\n")
+    
+    print("\nAdmin Panel Links:")
+    print(f"Admin Panel URL (IP): {admin_link_ip}")
+    if admin_link_domain:
+        print(f"Admin Panel URL (Domain): {admin_link_domain}")
+    print(f"Setup log saved in: {os.path.join(BASE_DIR, 'setup.log')}\n")
+    
+    return admin_link_domain, admin_link_ip
+
+def check_services():
+    print("Checking Nginx status...")
+    nginx_status = subprocess.getoutput("systemctl is-active nginx")
+    print(f"Nginx status: {nginx_status}")
+    print("Checking Uvicorn status...")
+    uvicorn_status = subprocess.getoutput("systemctl is-active uvicorn")
+    print(f"Uvicorn status: {uvicorn_status}")
+
 def run_uvicorn_as_service():
     print("Configuring Uvicorn as a service...")
     service_config = f"""
@@ -144,4 +152,5 @@ if __name__ == "__main__":
     configure_nginx(domain_or_ip)
     generate_admin_link(domain_or_ip)
     run_uvicorn_as_service()
+    check_services()
     print("\nInstallation completed successfully! 🚀")
