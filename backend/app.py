@@ -2,7 +2,7 @@ from backend.utils.file_utils import ensure_directory_exists, delete_file
 from backend.utils.network_utils import validate_url, extract_domain
 import os
 import secrets
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Query, Request, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -23,7 +23,6 @@ app = FastAPI(
 templates = Jinja2Templates(directory="backend/templates")
 
 # ایجاد جداول پایگاه داده (در صورت نیاز)
-# اطمینان از اینکه `engine` به درستی ایمپورت شده است
 from backend.database import engine, Base
 Base.metadata.create_all(bind=engine)
 
@@ -40,7 +39,7 @@ app.add_middleware(
 )
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["localhost", "127.0.0.1", SERVER_IP],  # آی‌پی سرور و لوکال‌ها
+    allowed_hosts=["localhost", "127.0.0.1", SERVER_IP]  # آرگومان‌ها به درستی تنظیم شدند
 )
 
 # تنظیم لاگر
