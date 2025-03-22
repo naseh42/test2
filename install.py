@@ -1,3 +1,5 @@
+# برای نصب و تنظیم همه ابزارها به همراه پشتیبانی از پروتکل‌ها و تنظیمات اختصاصی
+
 import os
 import subprocess
 import secrets
@@ -142,6 +144,42 @@ def run_uvicorn_as_service():
     subprocess.run(["systemctl", "enable", "uvicorn"], check=True)
     print("Uvicorn service configured successfully!")
 
+def setup_xray():
+    print("Setting up Xray...")
+    xray_path = "/usr/local/bin/xray"
+    subprocess.run(["wget", "-O", f"{xray_path}/xray", "https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip"], check=True)
+    subprocess.run(["unzip", f"{xray_path}/xray", "-d", xray_path], check=True)
+    subprocess.run(["chmod", "+x", f"{xray_path}/xray"], check=True)
+    xray_config = {
+        "log": {"loglevel": "warning"},
+        "inbounds": [{"port": 443, "protocol": "vmess", "settings": {"clients": []}}],
+        "outbounds": [{"protocol": "freedom", "settings": {}}],
+    }
+    config_path = "/etc/xray/config.json"
+    os.makedirs(os.path.dirname(config_path), exist_ok=True)
+    with open(config_path, "w") as f:
+        json.dump(xray_config, f, indent=4)
+    print("Xray configured successfully!")
+
+def setup_wireguard():
+    print("Setting up WireGuard...")
+    wg_config_path = "/etc/wireguard/wg0.conf"
+    wg_config = """
+    [Interface]
+    PrivateKey = YOUR_PRIVATE_KEY
+    Address = 10.0.0.1/24
+    ListenPort = 51820
+
+    [Peer]
+    PublicKey = YOUR_PEER_PUBLIC_KEY
+    AllowedIPs = 0.0.0.0/0
+    """
+    os.makedirs(os.path.dirname(wg_config_path), exist_ok=True)
+    with open(wg_config_path, "w") as f:
+        f.write(wg_config)
+    subprocess.run(["wg-quick", "up", "wg0"], check=True)
+    print("WireGuard configured successfully!")
+
 if __name__ == "__main__":
     print("Starting installation...")
     check_and_create_directories()
@@ -152,5 +190,7 @@ if __name__ == "__main__":
     configure_nginx(domain_or_ip)
     generate_admin_link(domain_or_ip)
     run_uvicorn_as_service()
+    setup_xray()
+    setup_wireguard()
     check_services()
     print("\nInstallation completed successfully! 🚀")
