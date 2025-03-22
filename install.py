@@ -17,8 +17,8 @@ def check_and_create_directories():
 def install_dependencies():
     print("Installing system-wide dependencies...")
     subprocess.run(["apt-get", "update"], check=True)
-    subprocess.run(["apt-get", "install", "-y", "python3", "python3-pip", "python3-venv",
-                    "nginx", "certbot", "unzip", "wget", "ufw", "openssl"], check=True)
+    subprocess.run(["apt-get", "install", "-y", "python3", "python3-pip", "python3-venv", 
+                    "nginx", "mariadb-server", "certbot", "unzip", "wget", "ufw", "openssl"], check=True)
     print("All system dependencies installed successfully!")
 
 def setup_virtualenv():
@@ -26,7 +26,7 @@ def setup_virtualenv():
     if not os.path.exists("venv"):
         subprocess.run(["python3", "-m", "venv", "venv"], check=True)
     subprocess.run(["venv/bin/pip", "install", "--upgrade", "pip"], check=True)
-    subprocess.run(["venv/bin/pip", "install", "fastapi", "uvicorn", "jinja2", "python-multipart",
+    subprocess.run(["venv/bin/pip", "install", "fastapi", "uvicorn", "jinja2", "python-multipart", 
                     "sqlalchemy", "bcrypt", "cryptography", "requests", "qrcode", "pytz"], check=True)
     print("Virtual environment and Python dependencies are set up!")
 
@@ -49,19 +49,21 @@ def prompt_for_domain():
         print(f"Using custom domain: {custom_domain}")
         return custom_domain
 
-def setup_trusted_host_middleware(domain_or_ip):
-    print("Updating TrustedHostMiddleware in app.py...")
+def update_app_py_with_ip(domain_or_ip):
+    print("Updating app.py with server IP for Invalid Header fix...")
     app_file_path = "backend/app.py"
-    with open(app_file_path, "r+") as file:
-        content = file.read()
-        updated_content = content.replace(
-            'allowed_hosts=["*", "localhost", "127.0.0.1"]',
-            f'allowed_hosts=["*", "localhost", "127.0.0.1", "{domain_or_ip}"]'
-        )
-        file.seek(0)
-        file.write(updated_content)
-        file.truncate()
-    print(f"TrustedHostMiddleware updated with: {domain_or_ip}")
+    try:
+        with open(app_file_path, "r+") as file:
+            content = file.read()
+            ip_update_code = f"allowed_hosts=['*', 'localhost', '127.0.0.1', '{domain_or_ip}']"
+            if ip_update_code not in content:
+                content += f"\n# Automatically added IP configuration\nallowed_hosts=['*', 'localhost', '127.0.0.1', '{domain_or_ip}']\n"
+            file.seek(0)
+            file.write(content)
+            file.truncate()
+        print(f"app.py updated with IP: {domain_or_ip}")
+    except Exception as e:
+        print(f"Error updating app.py: {e}")
 
 def configure_nginx(domain_or_ip):
     print("Configuring Nginx...")
@@ -148,6 +150,17 @@ def setup_xray():
 
     print("Xray configured successfully!")
 
+def setup_database():
+    print("Setting up MariaDB database...")
+    subprocess.run(["systemctl", "start", "mariadb"], check=True)
+    subprocess.run(["systemctl", "enable", "mariadb"], check=True)
+    print("MariaDB started and enabled on system boot!")
+    try:
+        subprocess.run(["mysql_secure_installation"], check=True)
+        print("MariaDB secure installation complete!")
+    except Exception as e:
+        print(f"Error during database setup: {e}")
+
 def run_uvicorn_as_service():
     print("Configuring Uvicorn as a service...")
     service_config = f"""
@@ -178,10 +191,11 @@ if __name__ == "__main__":
     install_dependencies()
     setup_virtualenv()
     domain_or_ip = prompt_for_domain()
-    setup_trusted_host_middleware(domain_or_ip)
+    update_app_py_with_ip(domain_or_ip)
     setup_certificates(domain_or_ip)
     configure_nginx(domain_or_ip)
     generate_admin_link(domain_or_ip)
     setup_xray()
+    setup_database()
     run_uvicorn_as_service()
-    print("\nInstallation completed successfully! 🚀")
+    print("\nInstallation completed successfully")
