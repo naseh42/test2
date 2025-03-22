@@ -1,136 +1,66 @@
 import os
+import json
 import subprocess
 import secrets
-import json
 
-BASE_DIR = os.path.abspath(os.getcwd())
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-def check_and_create_directories():
-    print("Checking and creating missing directories...")
-    required_directories = ["backend/static", "backend/templates", "backend/database", "configs"]
-    for directory in required_directories:
-        if not os.path.exists(directory):
-            print(f"Directory '{directory}' is missing. Creating it now...")
-            os.makedirs(directory, exist_ok=True)
-    print("All required directories are now in place!")
-
-def install_dependencies():
-    print("Installing system-wide dependencies...")
-    subprocess.run(["apt-get", "update"], check=True)
-    subprocess.run(["apt-get", "install", "-y", "python3", "python3-pip", "python3-venv", 
-                    "nginx", "mariadb-server", "certbot", "unzip", "wget", "ufw", "openssl"], check=True)
-    print("All system dependencies installed successfully!")
-
-def setup_virtualenv():
-    print("Setting up Python virtual environment...")
-    if not os.path.exists("venv"):
-        subprocess.run(["python3", "-m", "venv", "venv"], check=True)
-    subprocess.run(["venv/bin/pip", "install", "--upgrade", "pip"], check=True)
-    subprocess.run(["venv/bin/pip", "install", "fastapi", "uvicorn", "jinja2", "python-multipart", 
-                    "sqlalchemy", "bcrypt", "cryptography", "requests", "qrcode", "pytz"], check=True)
-    print("Virtual environment and Python dependencies are set up!")
-
-def prompt_for_domain():
-    print("Do you want to use a custom domain? (Leave blank to use the server's IP address)")
-    custom_domain = input("Enter your domain (or press Enter to use IP): ").strip()
-
-    if not custom_domain:
-        print("No domain provided. Fetching server's IP address...")
-        try:
-            server_ip = subprocess.getoutput("curl -s http://checkip.amazonaws.com").strip()
-            if not server_ip:
-                raise ValueError("Failed to fetch server IP. Check your network connection.")
-            print(f"Using server IP: {server_ip}")
-            return server_ip
-        except Exception as e:
-            print(f"Error fetching server IP: {e}")
-            return None
-    else:
-        print(f"Using custom domain: {custom_domain}")
-        return custom_domain
-
-def update_app_py_with_ip(domain_or_ip):
-    print("Updating app.py with server IP for Invalid Header fix...")
-    app_file_path = "backend/app.py"
+def get_server_ip():
+    """ دریافت آی‌پی عمومی سرور """
     try:
-        with open(app_file_path, "r+") as file:
-            content = file.read()
-            ip_update_code = f"allowed_hosts=['*', 'localhost', '127.0.0.1', '{domain_or_ip}']"
-            if ip_update_code not in content:
-                content += f"\n# Automatically added IP configuration\nallowed_hosts=['*', 'localhost', '127.0.0.1', '{domain_or_ip}']\n"
-            file.seek(0)
-            file.write(content)
-            file.truncate()
-        print(f"app.py updated with IP: {domain_or_ip}")
-    except Exception as e:
-        print(f"Error updating app.py: {e}")
-
-def configure_nginx(domain_or_ip):
-    print("Configuring Nginx...")
-    nginx_config = f"""
-    server {{
-        listen 80;
-        server_name {domain_or_ip};
-
-        location / {{
-            proxy_pass http://127.0.0.1:8000;
-            proxy_http_version 1.1;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection 'upgrade';
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-            proxy_cache_bypass $http_upgrade;
-        }}
-    }}
-    """
-    nginx_path = "/etc/nginx/sites-available/default"
-    with open(nginx_path, "w") as f:
-        f.write(nginx_config)
-    subprocess.run(["nginx", "-t"], check=True)
-    subprocess.run(["systemctl", "restart", "nginx"], check=True)
-    print("Nginx configured successfully!")
-
-def setup_certificates(domain_or_ip):
-    print("Setting up SSL certificates...")
-    cert_path = f"{BASE_DIR}/configs/selfsigned.crt"
-    key_path = f"{BASE_DIR}/configs/selfsigned.key"
-    subprocess.run([
-        "openssl", "req", "-x509", "-nodes", "-days", "365",
-        "-newkey", "rsa:2048", "-keyout", key_path, "-out", cert_path,
-        "-subj", f"/CN={domain_or_ip}"
-    ], check=True)
-    print(f"SSL certificate generated: {cert_path}, {key_path}")
+        return subprocess.check_output("curl -s ifconfig.me", shell=True).decode().strip()
+    except:
+        return "127.0.0.1"
 
 def generate_admin_link(domain_or_ip):
-    print("Generating admin links...")
-    try:
-        if not domain_or_ip:
-            raise ValueError("Domain or IP address is empty. Please check the input!")
+    """ تولید لینک تصادفی برای پنل ادمین """
+    print("Generating admin link...")
 
-        random_string = secrets.token_urlsafe(16)
-        admin_link = f"http://{domain_or_ip}/admin-{random_string}"
+    if not domain_or_ip:
+        domain_or_ip = get_server_ip()
+    
+    random_string = secrets.token_urlsafe(16)
+    admin_link = f"http://{domain_or_ip}/admin-{random_string}"
 
-        link_path = os.path.join(BASE_DIR, "admin_link.txt")
-        with open(link_path, "w") as f:
-            f.write(f"Admin Panel URL: {admin_link}\n")
+    link_path = os.path.join(BASE_DIR, "admin_link.txt")
+    with open(link_path, "w") as f:
+        f.write(f"Admin Panel URL: {admin_link}\n")
 
-        print("\nAdmin Panel Link:")
-        print(admin_link)
-        print(f"Link saved in file: {link_path}\n")
+    print(f"\n✅ Admin Panel Link: {admin_link}")
+    print(f"🔹 Link saved in: {link_path}")
 
-        return admin_link
-    except Exception as e:
-        print(f"Error generating admin link: {e}")
+    return admin_link
+
+def setup_ssl(domain=None):
+    """ تنظیم و دریافت SSL - اگر دامنه باشد Let’s Encrypt، در غیر اینصورت سلف ساین """
+    ssl_path = "/etc/ssl/private"
+    os.makedirs(ssl_path, exist_ok=True)
+    
+    if domain:
+        print(f"🔹 Trying to get SSL certificate for {domain} ...")
+        try:
+            subprocess.run(["apt", "install", "-y", "certbot"], check=True)
+            subprocess.run(["certbot", "certonly", "--standalone", "-d", domain, "--non-interactive", "--agree-tos", "-m", "admin@example.com"], check=True)
+            print("✅ SSL installed via Let's Encrypt!")
+            return f"/etc/letsencrypt/live/{domain}/fullchain.pem"
+        except Exception as e:
+            print(f"❌ Failed to get SSL certificate: {e}")
+
+    print("🔹 Generating self-signed certificate...")
+    subprocess.run(["openssl", "req", "-x509", "-newkey", "rsa:4096", "-keyout", f"{ssl_path}/selfsigned.key",
+                    "-out", f"{ssl_path}/selfsigned.crt", "-days", "365", "-nodes", "-subj", "/CN=localhost"], check=True)
+    return f"{ssl_path}/selfsigned.crt"
 
 def setup_xray():
-    print("Setting up Xray...")
+    """ دانلود، نصب و تنظیم XRay """
+    print("🔹 Setting up Xray...")
     xray_path = "/usr/local/bin/xray"
     os.makedirs(xray_path, exist_ok=True)
+    
     subprocess.run(["wget", "-O", "/tmp/Xray-linux-64.zip", "https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip"], check=True)
     subprocess.run(["unzip", "/tmp/Xray-linux-64.zip", "-d", xray_path], check=True)
     subprocess.run(["chmod", "+x", f"{xray_path}/xray"], check=True)
+
     xray_config = {
         "log": {"loglevel": "warning"},
         "inbounds": [
@@ -138,31 +68,51 @@ def setup_xray():
             {"port": 8443, "protocol": "vless", "settings": {"decryption": "none"}, "streamSettings": {"network": "ws"}},
             {"port": 2083, "protocol": "http", "settings": {}, "streamSettings": {"network": "http"}},
             {"port": 8448, "protocol": "vless", "settings": {"decryption": "none"}, "streamSettings": {"network": "grpc"}},
-            {"port": 4433, "protocol": "reality", "settings": {"clients": []}, "streamSettings": {"network": "tcp", "realitySettings": {"show": True}}},
+            {"port": 4433, "protocol": "shadowsocks", "settings": {"method": "aes-128-gcm", "password": "your-password"}},
+            {"port": 4434, "protocol": "h2_quic", "settings": {}, "streamSettings": {"network": "h2"}},
         ],
         "outbounds": [{"protocol": "freedom", "settings": {}}],
         "routing": {"rules": [{"type": "field", "inboundTag": ["blocked"], "outboundTag": "blocked"}]},
     }
+    
     config_path = "/etc/xray/config.json"
     os.makedirs(os.path.dirname(config_path), exist_ok=True)
+    
     with open(config_path, "w") as f:
         json.dump(xray_config, f, indent=4)
 
-    print("Xray configured successfully!")
+    print("✅ Xray configured successfully!")
 
 def setup_database():
-    print("Setting up MariaDB database...")
+    """ نصب و تنظیم دیتابیس MariaDB """
+    print("🔹 Setting up MariaDB database...")
     subprocess.run(["systemctl", "start", "mariadb"], check=True)
     subprocess.run(["systemctl", "enable", "mariadb"], check=True)
-    print("MariaDB started and enabled on system boot!")
+
     try:
-        subprocess.run(["mysql_secure_installation"], check=True)
-        print("MariaDB secure installation complete!")
+        print("🔹 Creating database and user...")
+        db_script = """
+        CREATE DATABASE app_db;
+        CREATE USER 'app_user'@'localhost' IDENTIFIED BY 'strong_password';
+        GRANT ALL PRIVILEGES ON app_db.* TO 'app_user'@'localhost';
+        FLUSH PRIVILEGES;
+        """
+        subprocess.run(["mysql", "-e", db_script], check=True)
+        
+        config_path = os.path.join(BASE_DIR, "database_config.txt")
+        with open(config_path, "w") as f:
+            f.write("Database Name: app_db\n")
+            f.write("Username: app_user\n")
+            f.write("Password: strong_password\n")
+        
+        print(f"✅ Database setup complete! Configuration saved in {config_path}")
     except Exception as e:
-        print(f"Error during database setup: {e}")
+        print(f"❌ Error during database setup: {e}")
 
 def run_uvicorn_as_service():
-    print("Configuring Uvicorn as a service...")
+    """ تنظیم و اجرای Uvicorn به عنوان سرویس systemd """
+    print("🔹 Configuring Uvicorn as a service...")
+    
     service_config = f"""
     [Unit]
     Description=Uvicorn Service
@@ -171,31 +121,35 @@ def run_uvicorn_as_service():
     [Service]
     User={os.getlogin()}
     WorkingDirectory={BASE_DIR}
-    ExecStart={BASE_DIR}/venv/bin/uvicorn backend.app:app --host 0.0.0.0 --port 8000
+    ExecStart={BASE_DIR}/venv/bin/uvicorn app:app --host 0.0.0.0 --port 8000 --proxy-headers
     Restart=always
 
     [Install]
     WantedBy=multi-user.target
     """
+    
     service_path = "/etc/systemd/system/uvicorn.service"
     with open(service_path, "w") as f:
         f.write(service_config)
+    
     subprocess.run(["systemctl", "daemon-reload"], check=True)
     subprocess.run(["systemctl", "start", "uvicorn"], check=True)
     subprocess.run(["systemctl", "enable", "uvicorn"], check=True)
-    print("Uvicorn service configured successfully!")
+    
+    print("✅ Uvicorn service configured successfully!")
 
 if __name__ == "__main__":
-    print("Starting installation...")
-    check_and_create_directories()
-    install_dependencies()
-    setup_virtualenv()
-    domain_or_ip = prompt_for_domain()
-    update_app_py_with_ip(domain_or_ip)
-    setup_certificates(domain_or_ip)
-    configure_nginx(domain_or_ip)
-    generate_admin_link(domain_or_ip)
+    print("🚀 Starting setup process...\n")
+
+    domain = input("Enter your domain (leave empty to use server IP): ").strip() or None
+    domain_or_ip = domain if domain else get_server_ip()
+
+    admin_link = generate_admin_link(domain_or_ip)
+    ssl_certificate = setup_ssl(domain)
     setup_xray()
     setup_database()
     run_uvicorn_as_service()
-    print("\nInstallation completed successfully")
+
+    print("\n✅ **Setup Completed Successfully!**")
+    print(f"🔹 **Admin Panel:** {admin_link}")
+    print(f"🔹 **SSL Certificate:** {ssl_certificate}")
