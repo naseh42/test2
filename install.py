@@ -57,6 +57,10 @@ def setup_nginx(domain_or_ip):
     }}
     """
     config_path = "/etc/nginx/sites-available/management_panel"
+    if os.path.exists("/etc/nginx/sites-enabled/management_panel"):
+        print("🔹 Existing symbolic link found. Removing...")
+        subprocess.run(["rm", "/etc/nginx/sites-enabled/management_panel"], check=True)
+
     with open(config_path, "w") as f:
         f.write(nginx_config)
     
@@ -195,4 +199,4 @@ if __name__ == "__main__":
 
     print("\n✅ **Setup Completed Successfully!**")
     print(f"🔹 **Admin Panel:** {admin_link}")
-    print(f"🔹 **SSL Certificate:** {ssl_certificate}")
+    print(f"🔹 **SSL Certificate
