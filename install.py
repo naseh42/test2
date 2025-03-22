@@ -38,11 +38,10 @@ def prompt_for_domain():
         print("No domain provided. Fetching server's IP address...")
         try:
             server_ip = subprocess.getoutput("curl -s http://checkip.amazonaws.com").strip()
-            if server_ip:
-                print(f"Using server IP: {server_ip}")
-                return server_ip
-            else:
-                raise ValueError("Could not fetch server's IP address. Please check your network.")
+            if not server_ip:
+                raise ValueError("Failed to fetch server IP. Check your network connection.")
+            print(f"Using server IP: {server_ip}")
+            return server_ip
         except Exception as e:
             print(f"Error fetching server IP: {e}")
             return None
