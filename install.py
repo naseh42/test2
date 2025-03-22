@@ -31,19 +31,6 @@ def generate_admin_link(domain_or_ip):
 
     return admin_link
 
-def setup_uvicorn():
-    """ تنظیم Uvicorn در محیط مجازی """
-    print("🔹 Setting up Uvicorn environment...")
-    
-    # ساخت محیط مجازی
-    subprocess.run(["python3", "-m", "venv", os.path.join(BASE_DIR, "venv")], check=True)
-    
-    # نصب Uvicorn و سایر وابستگی‌ها
-    subprocess.run([os.path.join(BASE_DIR, "venv/bin/pip"), "install", "--upgrade", "pip"], check=True)
-    subprocess.run([os.path.join(BASE_DIR, "venv/bin/pip"), "install", "uvicorn", "fastapi", "jinja2"], check=True)
-    
-    print("✅ Uvicorn environment configured successfully!")
-
 def setup_nginx(domain_or_ip):
     """ تنظیم خودکار Nginx برای اتصال پنل وب """
     print("🔹 Configuring Nginx...")
@@ -81,6 +68,26 @@ def setup_nginx(domain_or_ip):
     subprocess.run(["nginx", "-t"], check=True)
     subprocess.run(["systemctl", "restart", "nginx"], check=True)
     print("✅ Nginx configured successfully!")
+
+def setup_ssl(domain=None):
+    """ تنظیم و دریافت SSL - اگر دامنه باشد Let’s Encrypt، در غیر اینصورت سلف ساین """
+    ssl_path = "/etc/ssl/private"
+    os.makedirs(ssl_path, exist_ok=True)
+    
+    if domain:
+        print(f"🔹 Trying to get SSL certificate for {domain} ...")
+        try:
+            subprocess.run(["apt", "install", "-y", "certbot"], check=True)
+            subprocess.run(["certbot", "certonly", "--standalone", "-d", domain, "--non-interactive", "--agree-tos", "-m", "admin@example.com"], check=True)
+            print("✅ SSL installed via Let's Encrypt!")
+            return f"/etc/letsencrypt/live/{domain}/fullchain.pem"
+        except Exception as e:
+            print(f"❌ Failed to get SSL certificate: {e}")
+
+    print("🔹 Generating self-signed certificate...")
+    subprocess.run(["openssl", "req", "-x509", "-newkey", "rsa:4096", "-keyout", f"{ssl_path}/selfsigned.key",
+                    "-out", f"{ssl_path}/selfsigned.crt", "-days", "365", "-nodes", "-subj", "/CN=localhost"], check=True)
+    return f"{ssl_path}/selfsigned.crt"
 
 def setup_xray():
     """ دانلود، نصب و تنظیم XRay """
@@ -148,20 +155,73 @@ def setup_database():
     except Exception as e:
         print(f"❌ Error during database setup: {e}")
 
-def restart_services():
-    """ ریستارت و اطمینان از اجرای سرویس‌ها """
-    print("🔹 Restarting all services...")
+def run_uvicorn_as_service():
+    """ تنظیم و اجرای Uvicorn به عنوان سرویس systemd """
+    print("🔹 Configuring Uvicorn as a service...")
+    
+    service_config = f"""
+    [Unit]
+    Description=Uvicorn Service
+    After=network.target
 
-    # ریستارت سرویس Nginx
-    subprocess.run(["systemctl", "restart", "nginx"], check=True)
+    [Service]
+    User={os.getlogin()}
+    WorkingDirectory={BASE_DIR}
+    ExecStart={BASE_DIR}/venv/bin/uvicorn app:app --host 0.0.0.0 --port 8000 --proxy-headers
+    Restart=always
 
-    # ریستارت سرویس Uvicorn
-    subprocess.run(["systemctl", "restart", "uvicorn"], check=True)
+    [Install]
+    WantedBy=multi-user.target
+    """
+    
+    service_path = "/etc/systemd/system/uvicorn.service"
+    with open(service_path, "w") as f:
+        f.write(service_config)
+    
+    subprocess.run(["systemctl", "daemon-reload"], check=True)
+    subprocess.run(["systemctl", "start", "uvicorn"], check=True)
+    subprocess.run(["systemctl", "enable", "uvicorn"], check=True)
+    
+    print("✅ Uvicorn service configured successfully!")
 
-    # ریستارت سرویس Xray
-    subprocess.run(["systemctl", "restart", "xray"], check=True)
+def setup_xray_service():
+    """ تنظیم و اجرای Xray به عنوان سرویس systemd """
+    print("🔹 Configuring Xray as a service...")
+    
+    service_config = f"""
+    [Unit]
+    Description=Xray Service
+    After=network.target
 
-    print("✅ All services restarted successfully!")
+    [Service]
+    User={os.getlogin()}
+    WorkingDirectory={BASE_DIR}
+    ExecStart=/usr/local/bin/xray/xray -config /etc/xray/config.json
+    Restart=always
+
+    [Install]
+    WantedBy=multi-user.target
+    """
+    
+    service_path = "/etc/systemd/system/xray.service"
+    with open(service_path, "w") as f:
+        f.write(service_config)
+    
+    subprocess.run(["systemctl", "daemon-reload"], check=True)
+    subprocess.run(["systemctl", "start", "xray"], check=True)
+    subprocess.run(["systemctl", "enable", "xray"], check=True)
+    
+    print("✅ Xray service configured successfully!")
+
+def setup_nginx_service():
+    """ تنظیم و اجرای Nginx به عنوان سرویس systemd """
+    print("🔹 Configuring Nginx as a service...")
+    
+    # Nginx به طور پیش‌فرض به عنوان سرویس systemd نصب می‌شود.
+    subprocess.run(["systemctl", "enable", "nginx"], check=True)
+    subprocess.run(["systemctl", "start", "nginx"], check=True)
+    
+    print("✅ Nginx service configured successfully!")
 
 if __name__ == "__main__":
     print("🚀 Starting setup process...\n")
@@ -171,10 +231,13 @@ if __name__ == "__main__":
 
     admin_link = generate_admin_link(domain_or_ip)
     setup_nginx(domain_or_ip)
+    ssl_certificate = setup_ssl(domain)
     setup_xray()
     setup_database()
-    setup_uvicorn()
-    restart_services()
+    run_uvicorn_as_service()
+    setup_xray_service()
+    setup_nginx_service()
 
     print("\n✅ **Setup Completed Successfully!**")
     print(f"🔹 **Admin Panel:** {admin_link}")
+    print(f"🔹 **SSL Certificate:** {ssl_certificate}")
