@@ -1,21 +1,19 @@
+import subprocess
 from fastapi import FastAPI, Request, Query, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
-from backend.routers import users, domains, settings
 from backend.database.database import Base, engine
 from backend.utils.logger import setup_logger
 from backend.utils.time_utils import format_datetime, get_current_time
 from backend.utils.qr_utils import generate_qr_code
 from backend.utils.file_utils import ensure_directory_exists, delete_file
 from backend.utils.network_utils import validate_url, extract_domain
-import os
-import secrets
 
-# آی‌پی عمومی سرور (می‌توانید آن را دستی وارد کنید یا از متغیر محیطی استفاده کنید)
-SERVER_IP = os.getenv("SERVER_IP", "127.0.0.1")  # مثال: "your-server-ip"
+# شناسایی آی‌پی عمومی سرور به‌صورت خودکار
+SERVER_IP = subprocess.getoutput("curl -s http://checkip.amazonaws.com").strip()
 
 # ایجاد شیء FastAPI
 app = FastAPI(
@@ -43,7 +41,7 @@ app.add_middleware(
 )
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["localhost", "127.0.0.1", SERVER_IP],  # آی‌پی سرور و لوکال‌ها
+    allowed_hosts=["*", "localhost", "127.0.0.1", SERVER_IP]  # آی‌پی سرور و لوکال‌ها
 )
 
 # تنظیم لاگر
