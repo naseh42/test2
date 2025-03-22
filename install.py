@@ -76,8 +76,7 @@ def ensure_config_files():
         os.makedirs(xray_config_path.parent, exist_ok=True)
         with open(xray_config_path, "w") as f:
             json.dump(xray_config, f)
-       print(f"Xray config created at {xray_config_path}")
-wireguard_config_path = Path("/etc/wireguard/wg0.conf")
+        print(f"Xray config created at {xray_config_path}")wireguard_config_path = Path("/etc/wireguard/wg0.conf")
     if not wireguard_config_path.exists():
         wg_config = """
 [Interface]
