@@ -11,8 +11,6 @@ from backend.utils.time_utils import format_datetime, get_current_time
 from backend.utils.qr_utils import generate_qr_code
 from backend.utils.file_utils import ensure_directory_exists, delete_file
 from backend.utils.network_utils import validate_url, extract_domain
-import os
-import subprocess
 import secrets
 
 # ایجاد شیء FastAPI
@@ -157,41 +155,3 @@ def retrieve_admin_link():
 app.include_router(users.router, prefix="/users", tags=["Users"])
 app.include_router(domains.router, prefix="/domains", tags=["Domains"])
 app.include_router(settings.router, prefix="/settings", tags=["Settings"])
-
-# توابع برای نصب و کانفیگ Uvicorn
-def install_uvicorn():
-    print("Installing Uvicorn...")
-    subprocess.run(["pip", "install", "uvicorn"], check=True)
-    print("Uvicorn installed successfully!")
-
-def run_uvicorn_as_service():
-    print("Configuring Uvicorn as a service...")
-    BASE_DIR = os.path.abspath(os.getcwd())
-    service_config = f"""
-    [Unit]
-    Description=Uvicorn Service
-    After=network.target
-
-    [Service]
-    User={os.getlogin()}
-    WorkingDirectory={BASE_DIR}
-    ExecStart={BASE_DIR}/venv/bin/uvicorn app:app --host 0.0.0.0 --port 8000
-    Restart=always
-
-    [Install]
-    WantedBy=multi-user.target
-    """
-    service_path = "/etc/systemd/system/uvicorn.service"
-    with open(service_path, "w") as f:
-        f.write(service_config)
-    subprocess.run(["systemctl", "daemon-reload"], check=True)
-    subprocess.run(["systemctl", "start", "uvicorn"], check=True)
-    subprocess.run(["systemctl", "enable", "uvicorn"], check=True)
-    print("Uvicorn service configured and started successfully!")
-
-# فراخوانی نصب و کانفیگ در صورت اجرا مستقیم
-if __name__ == "__main__":
-    print("Starting setup...")
-    install_uvicorn()  # نصب Uvicorn
-    run_uvicorn_as_service()  # اجرای Uvicorn به‌عنوان سرویس
-    print("\nSetup completed successfully! 🚀")
