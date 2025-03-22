@@ -19,8 +19,7 @@ def install_dependencies():
     print("Installing system-wide dependencies...")
     subprocess.run(["apt-get", "update"], check=True)
     subprocess.run(["apt-get", "install", "-y", "python3", "python3-pip", "python3-venv", 
-                    "nginx", "mariadb-server", "certbot", "unzip", "wget", 
-                    "ufw", "openssl"], check=True)
+                    "nginx", "certbot", "unzip", "wget", "ufw", "openssl"], check=True)
     print("All system dependencies installed successfully!")
 
 def setup_virtualenv():
@@ -32,20 +31,27 @@ def setup_virtualenv():
                     "sqlalchemy", "bcrypt", "cryptography", "requests", "qrcode", "pytz"], check=True)
     print("Virtual environment and Python dependencies are set up!")
 
-def setup_trusted_host_middleware():
+def prompt_for_domain():
+    print("Do you want to use a custom domain? (Leave blank to use the server's IP address)")
+    custom_domain = input("Enter your domain (or press Enter to use IP): ").strip()
+    if not custom_domain:
+        custom_domain = subprocess.getoutput("curl -s http://checkip.amazonaws.com").strip()
+        print(f"No domain provided. Using server IP: {custom_domain}")
+    return custom_domain
+
+def setup_trusted_host_middleware(domain_or_ip):
     print("Updating TrustedHostMiddleware in app.py...")
-    server_ip = subprocess.getoutput("curl -s http://checkip.amazonaws.com").strip()
     app_file_path = "backend/app.py"
     with open(app_file_path, "r+") as file:
         content = file.read()
         updated_content = content.replace(
             'allowed_hosts=["*", "localhost", "127.0.0.1"]',
-            f'allowed_hosts=["*", "localhost", "127.0.0.1", "{server_ip}"]'
+            f'allowed_hosts=["*", "localhost", "127.0.0.1", "{domain_or_ip}"]'
         )
         file.seek(0)
         file.write(updated_content)
         file.truncate()
-    print(f"TrustedHostMiddleware updated with server IP: {server_ip}")
+    print(f"TrustedHostMiddleware updated with: {domain_or_ip}")
 
 def configure_nginx(domain_or_ip):
     print("Configuring Nginx...")
@@ -74,10 +80,8 @@ def configure_nginx(domain_or_ip):
     subprocess.run(["systemctl", "restart", "nginx"], check=True)
     print("Nginx configured successfully!")
 
-def setup_certificates():
+def setup_certificates(domain_or_ip):
     print("Setting up SSL certificates...")
-    domain_or_ip = subprocess.getoutput("curl -s http://checkip.amazonaws.com").strip()
-    print(f"Using server IP: {domain_or_ip}")
     cert_path = f"{BASE_DIR}/configs/selfsigned.crt"
     key_path = f"{BASE_DIR}/configs/selfsigned.key"
     subprocess.run([
@@ -85,30 +89,19 @@ def setup_certificates():
         "-newkey", "rsa:2048", "-keyout", key_path, "-out", cert_path,
         "-subj", f"/CN={domain_or_ip}"
     ], check=True)
-    print(f"Self-signed certificate generated: {cert_path}, {key_path}")
-    return domain_or_ip
+    print(f"SSL certificate generated: {cert_path}, {key_path}")
 
 def generate_admin_link(domain_or_ip):
     print("Generating admin links...")
     random_string = secrets.token_urlsafe(16)
-    server_ip = subprocess.getoutput("curl -s http://checkip.amazonaws.com").strip()
-    admin_link_ip = f"http://{server_ip}/admin-{random_string}"
-    admin_link_domain = None
-    if domain_or_ip and domain_or_ip != server_ip:
-        admin_link_domain = f"https://{domain_or_ip}/admin-{random_string}"
+    admin_link = f"http://{domain_or_ip}/admin-{random_string}"
     
     with open("admin_link.txt", "w") as f:
-        if admin_link_domain:
-            f.write(f"Domain Link: {admin_link_domain}\n")
-        f.write(f"IP Link: {admin_link_ip}\n")
+        f.write(f"Admin Panel URL: {admin_link}\n")
     
-    print("\nAdmin Panel Links:")
-    print(f"Admin Panel URL (IP): {admin_link_ip}")
-    if admin_link_domain:
-        print(f"Admin Panel URL (Domain): {admin_link_domain}")
+    print("\nAdmin Panel Link:")
+    print(admin_link)
     print(f"Setup log saved in: {os.path.join(BASE_DIR, 'setup.log')}\n")
-    
-    return admin_link_domain, admin_link_ip
 
 def setup_xray():
     print("Setting up Xray...")
@@ -120,15 +113,20 @@ def setup_xray():
     xray_config = {
         "log": {"loglevel": "warning"},
         "inbounds": [
-            {"port": 443, "protocol": "vmess", "settings": {"clients": []}},
-            {"port": 1080, "protocol": "socks", "settings": {}}
+            {"port": 443, "protocol": "vmess", "settings": {"clients": []}, "streamSettings": {"network": "tcp"}},
+            {"port": 8443, "protocol": "vless", "settings": {"decryption": "none"}, "streamSettings": {"network": "ws"}},
+            {"port": 2083, "protocol": "http", "settings": {}, "streamSettings": {"network": "http"}},
+            {"port": 8448, "protocol": "vless", "settings": {"decryption": "none"}, "streamSettings": {"network": "grpc"}},
+            {"port": 4433, "protocol": "reality", "settings": {"clients": []}, "streamSettings": {"network": "tcp", "realitySettings": {"show": True}}},
         ],
-        "outbounds": [{"protocol": "freedom", "settings": {}}]
+        "outbounds": [{"protocol": "freedom", "settings": {}}],
+        "routing": {"rules": [{"type": "field", "inboundTag": ["blocked"], "outboundTag": "blocked"}]},
     }
     config_path = "/etc/xray/config.json"
     os.makedirs(os.path.dirname(config_path), exist_ok=True)
     with open(config_path, "w") as f:
         json.dump(xray_config, f, indent=4)
+
     print("Xray configured successfully!")
 
 def run_uvicorn_as_service():
@@ -160,8 +158,9 @@ if __name__ == "__main__":
     check_and_create_directories()
     install_dependencies()
     setup_virtualenv()
-    setup_trusted_host_middleware()
-    domain_or_ip = setup_certificates()
+    domain_or_ip = prompt_for_domain()
+    setup_trusted_host_middleware(domain_or_ip)
+    setup_certificates(domain_or_ip)
     configure_nginx(domain_or_ip)
     generate_admin_link(domain_or_ip)
     setup_xray()
