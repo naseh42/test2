@@ -2,7 +2,6 @@ import os
 import subprocess
 import secrets
 import json
-import socket
 from pathlib import Path
 
 BASE_DIR = os.path.abspath(os.getcwd())
@@ -106,24 +105,6 @@ def configure_nginx(domain_or_ip):
     subprocess.run(["systemctl", "restart", "nginx"], check=True)
     print("Nginx configured successfully!")
 
-def verify_and_transfer_files():
-    print("Verifying and transferring panel files...")
-    panel_files = {
-        f"{BASE_DIR}/backend/templates": f"{BASE_DIR}/backend/templates/",
-        f"{BASE_DIR}/backend/static": f"{BASE_DIR}/backend/static/",
-        f"{BASE_DIR}/backend": f"{BASE_DIR}/backend/"
-    }
-    for src, dest in panel_files.items():
-        print(f"Checking directory: {src}")
-        if not os.path.exists(src):
-            print(f"Source directory '{src}' is missing.")
-            raise FileNotFoundError(f"Required source directory '{src}' is missing.")
-        if not os.path.exists(dest):
-            print(f"Destination directory '{dest}' is missing. Creating it now...")
-            os.makedirs(dest, exist_ok=True)
-        print(f"Directory '{dest}' checked or created successfully!")
-    print("All panel files are in the correct locations!")
-
 def setup_certificates():
     print("Setting up SSL certificates...")
     domain_or_ip = input("Enter your domain (or press Enter to use the server IP): ").strip()
@@ -200,7 +181,6 @@ if __name__ == "__main__":
     setup_virtualenv()
     generate_requirements_file()
     ensure_config_files()
-    verify_and_transfer_files()
     domain_or_ip = setup_certificates()
     configure_nginx(domain_or_ip)
     admin_link_domain, admin_link_ip = generate_admin_link(domain_or_ip)
