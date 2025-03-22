@@ -35,9 +35,17 @@ def prompt_for_domain():
     print("Do you want to use a custom domain? (Leave blank to use the server's IP address)")
     custom_domain = input("Enter your domain (or press Enter to use IP): ").strip()
     if not custom_domain:
-        custom_domain = subprocess.getoutput("curl -s http://checkip.amazonaws.com").strip()
-        print(f"No domain provided. Using server IP: {custom_domain}")
-    return custom_domain
+        print("No domain provided. Fetching server's IP address...")
+        try:
+            server_ip = subprocess.getoutput("curl -s http://checkip.amazonaws.com").strip()
+            print(f"Using server IP: {server_ip}")
+            return server_ip
+        except Exception as e:
+            print(f"Error fetching server IP: {e}")
+            return None
+    else:
+        print(f"Using custom domain: {custom_domain}")
+        return custom_domain
 
 def setup_trusted_host_middleware(domain_or_ip):
     print("Updating TrustedHostMiddleware in app.py...")
@@ -93,21 +101,24 @@ def setup_certificates(domain_or_ip):
 
 def generate_admin_link(domain_or_ip):
     print("Generating admin links...")
-    random_string = secrets.token_urlsafe(16)  # تولید رشته تصادفی
-    admin_link = f"http://{domain_or_ip}/admin-{random_string}"
-
     try:
-        # ذخیره لینک در فایل
+        if not domain_or_ip:
+            raise ValueError("Domain or IP address is empty. Please check the input!")
+
+        random_string = secrets.token_urlsafe(16)
+        admin_link = f"http://{domain_or_ip}/admin-{random_string}"
+
         link_path = os.path.join(BASE_DIR, "admin_link.txt")
         with open(link_path, "w") as f:
             f.write(f"Admin Panel URL: {admin_link}\n")
+
         print("\nAdmin Panel Link:")
         print(admin_link)
         print(f"Link saved in file: {link_path}\n")
-    except Exception as e:
-        print(f"Error while generating admin link: {e}")
 
-    return admin_link
+        return admin_link
+    except Exception as e:
+        print(f"Error generating admin link: {e}")
 
 def setup_xray():
     print("Setting up Xray...")
