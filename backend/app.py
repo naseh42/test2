@@ -11,7 +11,11 @@ from backend.utils.time_utils import format_datetime, get_current_time
 from backend.utils.qr_utils import generate_qr_code
 from backend.utils.file_utils import ensure_directory_exists, delete_file
 from backend.utils.network_utils import validate_url, extract_domain
+import os
 import secrets
+
+# آی‌پی عمومی سرور (می‌توانید آن را دستی وارد کنید یا از متغیر محیطی استفاده کنید)
+SERVER_IP = os.getenv("SERVER_IP", "127.0.0.1")  # مثال: "your-server-ip"
 
 # ایجاد شیء FastAPI
 app = FastAPI(
@@ -39,7 +43,7 @@ app.add_middleware(
 )
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["*", "localhost", "127.0.0.1"],  # * برای اجازه‌دادن به تمام دامنه‌ها و آی‌پی‌ها
+    allowed_hosts=["localhost", "127.0.0.1", SERVER_IP],  # آی‌پی سرور و لوکال‌ها
 )
 
 # تنظیم لاگر
