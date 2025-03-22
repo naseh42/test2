@@ -53,7 +53,6 @@ def generate_requirements_file():
 
 def ensure_config_files():
     print("Ensuring necessary config files are in place...")
-    # Example Xray configuration
     xray_config_path = Path("/etc/xray/config.json")
     if not xray_config_path.exists():
         xray_config = {
@@ -66,7 +65,6 @@ def ensure_config_files():
             json.dump(xray_config, f)
         print(f"Xray config created at {xray_config_path}")
 
-    # Example WireGuard configuration
     wireguard_config_path = Path("/etc/wireguard/wg0.conf")
     if not wireguard_config_path.exists():
         wg_config = """
@@ -130,7 +128,7 @@ def setup_certificates():
     print("Setting up SSL certificates...")
     domain_or_ip = input("Enter your domain (or press Enter to use the server IP): ").strip()
     if not domain_or_ip:
-        domain_or_ip = socket.gethostbyname(socket.gethostname())
+        domain_or_ip = subprocess.getoutput("curl -s http://checkip.amazonaws.com").strip()
         print(f"No domain provided. Using server IP: {domain_or_ip}")
         print("Generating self-signed certificate...")
         cert_path = f"{BASE_DIR}/configs/selfsigned.crt"
@@ -153,25 +151,21 @@ def generate_admin_link(domain_or_ip):
     print("Generating admin links...")
     random_string = secrets.token_urlsafe(16)
     
-    # لینک ادمین با آی‌پی
-    server_ip = socket.gethostbyname(socket.gethostname())
+    server_ip = subprocess.getoutput("curl -s http://checkip.amazonaws.com").strip()
     admin_link_ip = f"http://{server_ip}/admin-{random_string}"
-    
-    # لینک ادمین با دامنه (اگر وجود داشت)
     admin_link_domain = None
     if domain_or_ip and domain_or_ip != server_ip:
         admin_link_domain = f"https://{domain_or_ip}/admin-{random_string}"
     
-    # ذخیره لینک‌ها در فایل
     with open("admin_link.txt", "w") as f:
         if admin_link_domain:
             f.write(f"Domain Link: {admin_link_domain}\n")
         f.write(f"IP Link: {admin_link_ip}\n")
     
-    # نمایش لینک‌ها در خروجی
+    print("\nAdmin Panel Links:")
     if admin_link_domain:
-        print(f"Admin link with domain: {admin_link_domain}")
-    print(f"Admin link with IP: {admin_link_ip}")
+        print(f"Domain Link: {admin_link_domain}")
+    print(f"IP Link: {admin_link_ip}\n")
     
     return admin_link_domain, admin_link_ip
 
