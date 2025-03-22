@@ -199,4 +199,4 @@ if __name__ == "__main__":
 
     print("\n✅ **Setup Completed Successfully!**")
     print(f"🔹 **Admin Panel:** {admin_link}")
-    print(f"🔹 **SSL Certificate
+    print(f"🔹 **SSL Certificate:** {ssl_certificate}")
