@@ -20,7 +20,7 @@ def install_dependencies():
     subprocess.run(["apt-get", "update"], check=True)
     subprocess.run(["apt-get", "install", "-y", "python3", "python3-pip", "python3-venv", 
                     "nginx", "mariadb-server", "certbot", "unzip", "wget", 
-                    "wireguard", "ufw", "openssl"], check=True)
+                    "ufw", "openssl"], check=True)
     print("All system dependencies installed successfully!")
 
 def setup_virtualenv():
@@ -131,36 +131,29 @@ def setup_xray():
         json.dump(xray_config, f, indent=4)
     print("Xray configured successfully!")
 
-def setup_wireguard():
-    print("Setting up WireGuard...")
-    wg_config_path = "/etc/wireguard/wg0.conf"
+def run_uvicorn_as_service():
+    print("Configuring Uvicorn as a service...")
+    service_config = f"""
+    [Unit]
+    Description=Uvicorn Service
+    After=network.target
 
-    # Generate keys for WireGuard
-    server_private_key = subprocess.getoutput("wg genkey")
-    server_public_key = subprocess.getoutput(f"echo {server_private_key} | wg pubkey")
-    peer_private_key = subprocess.getoutput("wg genkey")
-    peer_public_key = subprocess.getoutput(f"echo {peer_private_key} | wg pubkey")
+    [Service]
+    User={os.getlogin()}
+    WorkingDirectory={BASE_DIR}
+    ExecStart={BASE_DIR}/venv/bin/uvicorn backend.app:app --host 0.0.0.0 --port 8000
+    Restart=always
 
-    wg_config = f"""
-    [Interface]
-    PrivateKey = {server_private_key}
-    Address = 10.0.0.1/24
-    ListenPort = 51820
-
-    [Peer]
-    PublicKey = {peer_public_key}
-    AllowedIPs = 0.0.0.0/0
+    [Install]
+    WantedBy=multi-user.target
     """
-    os.makedirs(os.path.dirname(wg_config_path), exist_ok=True)
-    with open(wg_config_path, "w") as f:
-        f.write(wg_config)
-
-    try:
-        subprocess.run(["wg-quick", "up", "wg0"], check=True)
-        print("WireGuard configured successfully!")
-    except subprocess.CalledProcessError as e:
-        print(f"Error during WireGuard setup: {e}")
-        raise
+    service_path = "/etc/systemd/system/uvicorn.service"
+    with open(service_path, "w") as f:
+        f.write(service_config)
+    subprocess.run(["systemctl", "daemon-reload"], check=True)
+    subprocess.run(["systemctl", "start", "uvicorn"], check=True)
+    subprocess.run(["systemctl", "enable", "uvicorn"], check=True)
+    print("Uvicorn service configured successfully!")
 
 if __name__ == "__main__":
     print("Starting installation...")
@@ -172,5 +165,5 @@ if __name__ == "__main__":
     configure_nginx(domain_or_ip)
     generate_admin_link(domain_or_ip)
     setup_xray()
-    setup_wireguard()
+    run_uvicorn_as_service()
     print("\nInstallation completed successfully! 🚀")
