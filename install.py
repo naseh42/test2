@@ -134,21 +134,33 @@ def setup_xray():
 def setup_wireguard():
     print("Setting up WireGuard...")
     wg_config_path = "/etc/wireguard/wg0.conf"
-    wg_config = """
+
+    # Generate keys for WireGuard
+    server_private_key = subprocess.getoutput("wg genkey")
+    server_public_key = subprocess.getoutput(f"echo {server_private_key} | wg pubkey")
+    peer_private_key = subprocess.getoutput("wg genkey")
+    peer_public_key = subprocess.getoutput(f"echo {peer_private_key} | wg pubkey")
+
+    wg_config = f"""
     [Interface]
-    PrivateKey = YOUR_PRIVATE_KEY
+    PrivateKey = {server_private_key}
     Address = 10.0.0.1/24
     ListenPort = 51820
 
     [Peer]
-    PublicKey = YOUR_PEER_PUBLIC_KEY
+    PublicKey = {peer_public_key}
     AllowedIPs = 0.0.0.0/0
     """
     os.makedirs(os.path.dirname(wg_config_path), exist_ok=True)
     with open(wg_config_path, "w") as f:
         f.write(wg_config)
-    subprocess.run(["wg-quick", "up", "wg0"], check=True)
-    print("WireGuard configured successfully!")
+
+    try:
+        subprocess.run(["wg-quick", "up", "wg0"], check=True)
+        print("WireGuard configured successfully!")
+    except subprocess.CalledProcessError as e:
+        print(f"Error during WireGuard setup: {e}")
+        raise
 
 if __name__ == "__main__":
     print("Starting installation...")
