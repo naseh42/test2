@@ -93,15 +93,21 @@ def setup_certificates(domain_or_ip):
 
 def generate_admin_link(domain_or_ip):
     print("Generating admin links...")
-    random_string = secrets.token_urlsafe(16)
+    random_string = secrets.token_urlsafe(16)  # تولید رشته تصادفی
     admin_link = f"http://{domain_or_ip}/admin-{random_string}"
-    
-    with open("admin_link.txt", "w") as f:
-        f.write(f"Admin Panel URL: {admin_link}\n")
-    
-    print("\nAdmin Panel Link:")
-    print(admin_link)
-    print(f"Setup log saved in: {os.path.join(BASE_DIR, 'setup.log')}\n")
+
+    try:
+        # ذخیره لینک در فایل
+        link_path = os.path.join(BASE_DIR, "admin_link.txt")
+        with open(link_path, "w") as f:
+            f.write(f"Admin Panel URL: {admin_link}\n")
+        print("\nAdmin Panel Link:")
+        print(admin_link)
+        print(f"Link saved in file: {link_path}\n")
+    except Exception as e:
+        print(f"Error while generating admin link: {e}")
+
+    return admin_link
 
 def setup_xray():
     print("Setting up Xray...")
