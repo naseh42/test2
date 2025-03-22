@@ -2,7 +2,6 @@ import os
 import subprocess
 import secrets
 import json
-from pathlib import Path
 
 BASE_DIR = os.path.abspath(os.getcwd())
 
@@ -18,7 +17,7 @@ def check_and_create_directories():
 def install_dependencies():
     print("Installing system-wide dependencies...")
     subprocess.run(["apt-get", "update"], check=True)
-    subprocess.run(["apt-get", "install", "-y", "python3", "python3-pip", "python3-venv", 
+    subprocess.run(["apt-get", "install", "-y", "python3", "python3-pip", "python3-venv",
                     "nginx", "certbot", "unzip", "wget", "ufw", "openssl"], check=True)
     print("All system dependencies installed successfully!")
 
@@ -27,19 +26,23 @@ def setup_virtualenv():
     if not os.path.exists("venv"):
         subprocess.run(["python3", "-m", "venv", "venv"], check=True)
     subprocess.run(["venv/bin/pip", "install", "--upgrade", "pip"], check=True)
-    subprocess.run(["venv/bin/pip", "install", "fastapi", "uvicorn", "jinja2", "python-multipart", 
+    subprocess.run(["venv/bin/pip", "install", "fastapi", "uvicorn", "jinja2", "python-multipart",
                     "sqlalchemy", "bcrypt", "cryptography", "requests", "qrcode", "pytz"], check=True)
     print("Virtual environment and Python dependencies are set up!")
 
 def prompt_for_domain():
     print("Do you want to use a custom domain? (Leave blank to use the server's IP address)")
     custom_domain = input("Enter your domain (or press Enter to use IP): ").strip()
+
     if not custom_domain:
         print("No domain provided. Fetching server's IP address...")
         try:
             server_ip = subprocess.getoutput("curl -s http://checkip.amazonaws.com").strip()
-            print(f"Using server IP: {server_ip}")
-            return server_ip
+            if server_ip:
+                print(f"Using server IP: {server_ip}")
+                return server_ip
+            else:
+                raise ValueError("Could not fetch server's IP address. Please check your network.")
         except Exception as e:
             print(f"Error fetching server IP: {e}")
             return None
