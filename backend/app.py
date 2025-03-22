@@ -39,7 +39,7 @@ app.add_middleware(
 )
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["localhost", "127.0.0.1", SERVER_IP]  # آرگومان‌ها به درستی تنظیم شدند
+    allowed_hosts=["localhost", "127.0.0.1", "*"]  # موقتاً اجازه به همه هاست‌ها
 )
 
 # تنظیم لاگر
@@ -53,6 +53,10 @@ async def startup_event():
     current_time = get_current_time()
     logger.info(f"🚀 Application started at {format_datetime(current_time)}")
     ensure_directory_exists("backend/static")  # اطمینان از وجود مسیر استاتیک
+    favicon_path = "backend/static/favicon.ico"
+    if not os.path.exists(favicon_path):
+        with open(favicon_path, "w") as f:
+            pass  # ایجاد فایل favicon.ico اگر موجود نباشد
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -76,6 +80,15 @@ async def validation_exception_handler(request: Request, exc):
         status_code=422,
         content={"message": "Validation error occurred.", "details": exc.errors()},
     )
+
+# افزودن Middleware لاگ‌برداری درخواست‌ها
+@app.middleware("http")
+async def log_request_details(request: Request, call_next):
+    logger.debug(f"Headers: {request.headers}")
+    logger.debug(f"URL: {request.url}")
+    response = await call_next(request)
+    logger.debug(f"Response status: {response.status_code}")
+    return response
 
 # مسیر تولید QR Code
 @app.get("/generate-qr", tags=["QR Code"])
@@ -139,6 +152,8 @@ def admin_access(random_string: str):
     try:
         with open("admin_link.txt", "r") as file:
             saved_link = file.read().strip()
+        logger.debug(f"Admin Link from File: {saved_link}")
+        logger.debug(f"Random String in Request: {random_string}")
         if f"/admin-{random_string}" not in saved_link:
             raise HTTPException(status_code=403, detail="Invalid admin link.")
         return {"message": "Welcome to the admin panel!"}
