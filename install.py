@@ -31,6 +31,40 @@ def generate_admin_link(domain_or_ip):
 
     return admin_link
 
+def setup_nginx(domain_or_ip):
+    """ تنظیم خودکار Nginx برای اتصال پنل وب """
+    print("🔹 Configuring Nginx...")
+    nginx_config = f"""
+    server {{
+        listen 80;
+        server_name {domain_or_ip};
+
+        location / {{
+            proxy_pass http://127.0.0.1:8000/;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $host;
+            proxy_cache_bypass $http_upgrade;
+        }}
+
+        location /static/ {{
+            alias {os.path.join(BASE_DIR, "backend/static")};
+        }}
+
+        error_log /var/log/nginx/management_panel_error.log;
+        access_log /var/log/nginx/management_panel_access.log;
+    }}
+    """
+    config_path = "/etc/nginx/sites-available/management_panel"
+    with open(config_path, "w") as f:
+        f.write(nginx_config)
+    
+    subprocess.run(["ln", "-s", config_path, "/etc/nginx/sites-enabled/"], check=True)
+    subprocess.run(["nginx", "-t"], check=True)
+    subprocess.run(["systemctl", "restart", "nginx"], check=True)
+    print("✅ Nginx configured successfully!")
+
 def setup_ssl(domain=None):
     """ تنظیم و دریافت SSL - اگر دامنه باشد Let’s Encrypt، در غیر اینصورت سلف ساین """
     ssl_path = "/etc/ssl/private"
@@ -145,6 +179,7 @@ if __name__ == "__main__":
     domain_or_ip = domain if domain else get_server_ip()
 
     admin_link = generate_admin_link(domain_or_ip)
+    setup_nginx(domain_or_ip)
     ssl_certificate = setup_ssl(domain)
     setup_xray()
     setup_database()
