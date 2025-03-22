@@ -124,14 +124,22 @@ def setup_database():
     subprocess.run(["systemctl", "enable", "mariadb"], check=True)
 
     try:
-        print("🔹 Creating database and user...")
-        db_script = """
-        CREATE DATABASE app_db;
-        CREATE USER 'app_user'@'localhost' IDENTIFIED BY 'strong_password';
-        GRANT ALL PRIVILEGES ON app_db.* TO 'app_user'@'localhost';
-        FLUSH PRIVILEGES;
-        """
-        subprocess.run(["mysql", "-e", db_script], check=True)
+        print("🔹 Checking if database exists...")
+        # بررسی وجود دیتابیس
+        check_db_script = "SHOW DATABASES LIKE 'app_db';"
+        result = subprocess.run(["mysql", "-e", check_db_script], capture_output=True, text=True)
+        
+        if 'app_db' in result.stdout:
+            print("✅ Database 'app_db' already exists. Skipping creation.")
+        else:
+            print("🔹 Creating database and user...")
+            db_script = """
+            CREATE DATABASE app_db;
+            CREATE USER 'app_user'@'localhost' IDENTIFIED BY 'strong_password';
+            GRANT ALL PRIVILEGES ON app_db.* TO 'app_user'@'localhost';
+            FLUSH PRIVILEGES;
+            """
+            subprocess.run(["mysql", "-e", db_script], check=True)
         
         config_path = os.path.join(BASE_DIR, "database_config.txt")
         with open(config_path, "w") as f:
