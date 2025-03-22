@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Query
+from fastapi import FastAPI, Request, Query, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -32,14 +32,14 @@ app.mount("/static", StaticFiles(directory="backend/static"), name="static")
 # افزودن Middleware برای امنیت و دسترسی‌ها
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://your-production-domain.com"],  # محدود به دامنه‌های معتبر در محیط تولید
+    allow_origins=["*"],  # اجازه دسترسی به همه دامنه‌ها برای تست
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],  # روش‌های مجاز
     allow_headers=["*"],
 )
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["your-production-domain.com", "*.your-domain.com"],  # محدودیت دامنه‌های مجاز
+    allowed_hosts=["*", "localhost", "127.0.0.1"],  # * برای اجازه‌دادن به تمام دامنه‌ها و آی‌پی‌ها
 )
 
 # تنظیم لاگر
